@@ -7,19 +7,94 @@ output:
 
 
 ## Loading and preprocessing the data
+First, we load in the data using `read.csv` and then we make the following adjustments:
+*Convert `date` column to date format
+*Convert the interval to time
 
+We'll also load in some libraries
+
+```{r echo=TRUE}
+#first, load in libraries
+library(ggplot2)
+library(tibble)
+library(lubridate)
+library(stringr)
+
+#load data
+activityData <- read.csv(file="activity.csv",header=TRUE)
+
+#convert date column to date
+activityData$date <- as.Date(as.character(activityData$date),format='%Y-%m-%d')
+activityData$interval <- as.factor(activityData$interval)
+
+#convert interval column to time
+times <- activityData$interval
+times <- str_pad(times,4,"left", pad=c('0'))
+
+head(activityData)
+
+
+```
+
+Now that the data is loaded in and processed, we can proceed to the graphs.
 
 
 ## What is mean total number of steps taken per day?
 
+First, we get the total number of steps and the total number of days.
+```{r echo=TRUE, cache=TRUE}
+totalSteps <- sum(activityData$steps, na.rm=TRUE)
+totalDays <- length(unique(activityData$date))
+```
+There were `r totalSteps` steps taken over `r totalDays` days.
+
+Next, we find the mean:
+
+```{r echo=TRUE}
+averageSteps <- totalSteps/totalDays
+```
+The mean number of steps taken per day is `r averageSteps` steps.
 
 
 ## What is the average daily activity pattern?
 
+First, we calculate the average number of steps per interval
+```{r echo=TRUE}
+stepList <- tapply(activityData$steps, activityData$interval, mean, na.rm=TRUE)
+```
+This returns a list.
+
+Next, we convert the list into a dataframe and ensure the interval is stored as a column rather than the row names.
+```{r echo=TRUE}
+stepDf <- as.data.frame(stepList)
+stepDf <- rownames_to_column(stepDf, var="interval")
+```
+
+Now that we have our data frame, we can turn this into a graph.
+
+```{r echo=TRUE}
+stepGraph <- ggplot(data=stepDf, aes(x=as.integer(interval),y=stepList))
+
+stepGraph <- stepGraph +
+             geom_point() +
+             geom_line() +
+             labs(x="Interval",
+                  y="Average Steps",
+                  title="Daily Activity Pattern")
+stepGraph
+
+```
 
 
 ## Imputing missing values
 
+To impute the missing values, it will be helpful to first know how many missing values there are.
+```{r echo=TRUE}
+numMissingVals <- sum(is.na(activityData$steps))
+```
 
+There are `r numMissingVals` missing values. 
+
+To impute these missing values, we'll replace them with the interval average.
 
 ## Are there differences in activity patterns between weekdays and weekends?
